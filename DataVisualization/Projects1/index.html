@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>冬奥会奖牌数据可视化</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0c1222;
+      --bg-card: rgba(18, 26, 44, 0.85);
+      --border: rgba(120, 160, 220, 0.15);
+      --text: #e8edf5;
+      --muted: #8b9bb4;
+      --accent: #5b9bd5;
+      --gold: #e8c547;
+      --silver: #a8b4c8;
+      --bronze: #c17f4a;
+      --glow: rgba(91, 155, 213, 0.12);
+      --radius: 16px;
+      --shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Noto Sans SC", "DM Sans", system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(91, 155, 213, 0.25), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 20%, rgba(232, 197, 71, 0.08), transparent),
+        radial-gradient(ellipse 50% 30% at 50% 100%, rgba(80, 120, 180, 0.15), transparent),
+        var(--bg-deep);
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(1rem, 4vw, 2.5rem);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+      animation: fadeUp 0.7s ease-out;
+    }
+
+    header h1 {
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #fff 0%, #a8c4e8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.1s ease-out both;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card span {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .stat-card strong {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 0.25rem;
+    }
+
+    .stat-card.gold strong { color: var(--gold); }
+    .stat-card.silver strong { color: var(--silver); }
+    .stat-card.bronze strong { color: var(--bronze); }
+    .stat-card.total strong { color: var(--accent); }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 900px) {
+      .charts {
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+      }
+    }
+
+    .chart-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1rem 0.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.7s 0.2s ease-out both;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-panel.wide {
+      grid-column: 1 / -1;
+    }
+
+    @media (min-width: 900px) {
+      .chart-panel.wide {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .chart-panel h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+    }
+
+    .chart {
+      flex: 1;
+      width: 100%;
+      min-height: 320px;
+    }
+
+    .error-banner {
+      display: none;
+      background: rgba(200, 80, 80, 0.2);
+      border: 1px solid rgba(220, 100, 100, 0.4);
+      color: #f5b5b5;
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .error-banner.visible {
+      display: block;
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      animation: fadeUp 0.7s 0.3s ease-out both;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh" aria-hidden="true"></div>
+  <div class="page">
+    <header>
+      <h1>冬奥会奖牌榜数据可视化</h1>
+      <p>基于 CSV 实验数据 · ECharts 图表 · 响应式布局</p>
+    </header>
+
+    <div id="load-error" class="error-banner" role="alert"></div>
+
+    <section class="stats" aria-label="数据概览">
+      <div class="stat-card gold">
+        <span>金牌合计（前 10 名）</span>
+        <strong id="sum-gold">—</strong>
+      </div>
+      <div class="stat-card silver">
+        <span>银牌合计（前 10 名）</span>
+        <strong id="sum-silver">—</strong>
+      </div>
+      <div class="stat-card bronze">
+        <span>铜牌合计（前 10 名）</span>
+        <strong id="sum-bronze">—</strong>
+      </div>
+      <div class="stat-card total">
+        <span>参与国家/地区</span>
+        <strong id="country-count">—</strong>
+      </div>
+    </section>
+
+    <div class="charts">
+      <article class="chart-panel wide">
+        <h2>各国金 / 银 / 铜奖牌分布（前 10 名）— 堆叠柱状图</h2>
+        <div id="chart-stacked" class="chart" role="img" aria-label="堆叠柱状图"></div>
+      </article>
+      <article class="chart-panel">
+        <h2>奖牌总数占比（前 8 名）— 饼图</h2>
+        <div id="chart-pie" class="chart" role="img" aria-label="饼图"></div>
+      </article>
+      <article class="chart-panel">
+        <h2>各国奖牌总数排行（前 12 名）— 横向条形图</h2>
+        <div id="chart-bar" class="chart" role="img" aria-label="条形图"></div>
+      </article>
+    </div>
+
+    <footer>
+      数据来源：medals_countries.csv · 
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /** @typedef {{ rank: number, country: string, gold: number, silver: number, bronze: number, total: number, flag: string }} Row */
+
+      /**
+       * @param {string} text
+       * @returns {Row[]}
+       */
+      function parseCSV(text) {
+        var lines = text.trim().split(/\r?\n/);
+        if (lines.length < 2) return [];
+        var rows = [];
+        for (var i = 1; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line) continue;
+          var parts = line.split(",");
+          if (parts.length < 7) continue;
+          var flag = parts.slice(6).join(",");
+          rows.push({
+            rank: parseInt(parts[0], 10),
+            country: parts[1],
+            gold: parseInt(parts[2], 10),
+            silver: parseInt(parts[3], 10),
+            bronze: parseInt(parts[4], 10),
+            total: parseInt(parts[5], 10),
+            flag: flag
+          });
+        }
+        return rows;
+      }
+
+      var MEDAL_COLORS = {
+        gold: "#e8c547",
+        silver: "#9aa8bc",
+        bronze: "#c17f4a"
+      };
+
+      var chartStacked = echarts.init(document.getElementById("chart-stacked"), null, { renderer: "canvas" });
+      var chartPie = echarts.init(document.getElementById("chart-pie"), null, { renderer: "canvas" });
+      var chartBar = echarts.init(document.getElementById("chart-bar"), null, { renderer: "canvas" });
+
+      function baseTextStyle() {
+        return { color: "#b8c5d8", fontFamily: "Noto Sans SC, sans-serif" };
+      }
+
+      /**
+       * @param {Row[]} data
+       */
+      function renderCharts(data) {
+        var top10 = data.slice(0, 10);
+        var top8 = data.slice(0, 8);
+        var top12 = data.slice(0, 12);
+
+        var sumG = 0, sumS = 0, sumB = 0;
+        top10.forEach(function (r) {
+          sumG += r.gold;
+          sumS += r.silver;
+          sumB += r.bronze;
+        });
+        document.getElementById("sum-gold").textContent = String(sumG);
+        document.getElementById("sum-silver").textContent = String(sumS);
+        document.getElementById("sum-bronze").textContent = String(sumB);
+        document.getElementById("country-count").textContent = String(data.length);
+
+        var countries10 = top10.map(function (r) { return r.country; });
+
+        chartStacked.setOption({
+          backgroundColor: "transparent",
+          tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            backgroundColor: "rgba(12, 18, 34, 0.92)",
+            borderColor: "rgba(120, 160, 220, 0.3)",
+            textStyle: { color: "#e8edf5" }
+          },
+          legend: {
+            data: ["金牌", "银牌", "铜牌"],
+            bottom: 8,
+            textStyle: baseTextStyle(),
+            itemGap: 16
+          },
+          grid: { left: "3%", right: "4%", bottom: "18%", top: "8%", containLabel: true },
+          xAxis: {
+            type: "category",
+            data: countries10,
+            axisLabel: { ...baseTextStyle(), rotate: countries10.length > 8 ? 28 : 0, interval: 0 },
+            axisLine: { lineStyle: { color: "rgba(120, 160, 220, 0.25)" } }
+          },
+          yAxis: {
+            type: "value",
+            name: "枚",
+            nameTextStyle: baseTextStyle(),
+            splitLine: { lineStyle: { color: "rgba(120, 160, 220, 0.12)" } },
+            axisLabel: baseTextStyle()
+          },
+          series: [
+            {
+              name: "金牌",
+              type: "bar",
+              stack: "medals",
+              emphasis: { focus: "series" },
+              itemStyle: { color: MEDAL_COLORS.gold, borderRadius: [0, 0, 0, 0] },
+              data: top10.map(function (r) { return r.gold; })
+            },
+            {
+              name: "银牌",
+              type: "bar",
+              stack: "medals",
+              emphasis: { focus: "series" },
+              itemStyle: { color: MEDAL_COLORS.silver },
+              data: top10.map(function (r) { return r.silver; })
+            },
+            {
+              name: "铜牌",
+              type: "bar",
+              stack: "medals",
+              emphasis: { focus: "series" },
+              itemStyle: {
+                color: MEDAL_COLORS.bronze,
+                borderRadius: [4, 4, 0, 0]
+              },
+              data: top10.map(function (r) { return r.bronze; })
+            }
+          ]
+        });
+
+        var pieData = top8.map(function (r) {
+          return { name: r.country, value: r.total };
+        });
+
+        chartPie.setOption({
+          backgroundColor: "transparent",
+          tooltip: {
+            trigger: "item",
+            formatter: "{b}<br/>奖牌数：{c} ({d}%)",
+            backgroundColor: "rgba(12, 18, 34, 0.92)",
+            borderColor: "rgba(120, 160, 220, 0.3)",
+            textStyle: { color: "#e8edf5" }
+          },
+          legend: {
+            type: "scroll",
+            orient: "vertical",
+            right: "2%",
+            top: "middle",
+            textStyle: { ...baseTextStyle(), fontSize: 11 },
+            pageIconColor: "#8b9bb4"
+          },
+          series: [
+            {
+              name: "奖牌占比",
+              type: "pie",
+              radius: ["38%", "62%"],
+              center: ["40%", "50%"],
+              avoidLabelOverlap: true,
+              itemStyle: { borderRadius: 6, borderColor: "#0c1222", borderWidth: 2 },
+              label: {
+                show: true,
+                formatter: "{b}\n{d}%",
+                color: "#d0dae8",
+                fontSize: 11
+              },
+              emphasis: {
+                label: { show: true, fontSize: 13, fontWeight: "bold" },
+                itemStyle: { shadowBlur: 16, shadowColor: "rgba(91, 155, 213, 0.45)" }
+              },
+              data: pieData
+            }
+          ],
+          color: [
+            "#5b9bd5", "#e8c547", "#70ad47", "#ed7d31", "#9e7cc9",
+            "#4472c4", "#ffc000", "#91a437"
+          ]
+        });
+
+        chartBar.setOption({
+          backgroundColor: "transparent",
+          tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            backgroundColor: "rgba(12, 18, 34, 0.92)",
+            borderColor: "rgba(120, 160, 220, 0.3)",
+            textStyle: { color: "#e8edf5" }
+          },
+          grid: { left: "3%", right: "8%", bottom: "3%", top: "3%", containLabel: true },
+          xAxis: {
+            type: "value",
+            splitLine: { lineStyle: { color: "rgba(120, 160, 220, 0.12)" } },
+            axisLabel: baseTextStyle()
+          },
+          yAxis: {
+            type: "category",
+            data: top12.map(function (r) { return r.country; }).reverse(),
+            axisLabel: baseTextStyle(),
+            axisLine: { lineStyle: { color: "rgba(120, 160, 220, 0.25)" } }
+          },
+          series: [
+            {
+              name: "奖牌总数",
+              type: "bar",
+              data: top12.map(function (r) { return r.total; }).reverse(),
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                  { offset: 0, color: "#3d6fa8" },
+                  { offset: 1, color: "#5b9bd5" }
+                ]),
+                borderRadius: [0, 6, 6, 0]
+              },
+              label: {
+                show: true,
+                position: "right",
+                color: "#b8c5d8",
+                formatter: "{c}"
+              }
+            }
+          ]
+        });
+      }
+
+      function resizeAll() {
+        chartStacked.resize();
+        chartPie.resize();
+        chartBar.resize();
+      }
+
+      window.addEventListener("resize", function () {
+        resizeAll();
+      });
+
+      fetch("medals_countries.csv")
+        .then(function (res) {
+          if (!res.ok) throw new Error("无法加载 CSV（HTTP " + res.status + "）");
+          return res.text();
+        })
+        .then(function (text) {
+          var data = parseCSV(text);
+          if (!data.length) throw new Error("CSV 解析结果为空");
+          renderCharts(data);
+        })
+        .catch(function (err) {
+          var el = document.getElementById("load-error");
+          el.classList.add("visible");
+          el.textContent =
+            "加载失败：" +
+            (err && err.message ? err.message : String(err)) +
+            "。请使用本地服务器打开本目录（例如：npx serve 或 VS Code Live Server）。";
+        });
+    })();
+  </script>
+</body>
+</html>
