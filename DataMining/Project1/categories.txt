@@ -1,0 +1,2 @@
+Women,https://www.asos.com/women/
+Men,https://www.asos.com/men/
