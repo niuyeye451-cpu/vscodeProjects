@@ -38,9 +38,9 @@ def get_category_links():
             href = link.get_attribute("href")
             if not href:
                 continue
-            if href.endswith("/women/") or href == "https://www.asos.com/women":
+            if href.endswith("/women/") :
                 women_link = href
-            elif href.endswith("/men/") or href == "https://www.asos.com/men":
+            elif href.endswith("/men/") :
                 men_link = href
             if women_link and men_link:
                 break
